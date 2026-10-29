@@ -18,7 +18,7 @@ const buttonVariants = cva(
       variant: {
         default: [
           // white text on the dark burnt orange (light mode), dark text on the lighter orange (dark mode)
-          "text-white dark:text-[oklch(20%_0.05_38)]",
+          "text-white rounded-xl",
           "bg-[linear-gradient(to_bottom,color-mix(in_oklab,var(--accent-bright),white_16%),var(--accent-bright)_50%,color-mix(in_oklab,var(--accent-bright),black_18%))]",
           // inside: top highlight + bottom shade | outside: edge ring + contact shadow + orange glow
           "[box-shadow:inset_0_1px_0_0_rgba(255,255,255,0.35),inset_0_-2px_4px_0_rgba(0,0,0,0.25),0_0_0_1px_color-mix(in_oklab,var(--accent-bright),black_35%),0_1px_2px_0_rgba(0,0,0,0.3),0_8px_20px_-4px_color-mix(in_oklab,var(--accent-bright)_55%,transparent)]",
@@ -75,6 +75,8 @@ const buttonVariants = cva(
     },
   },
 );
+
+
 export interface ButtonProps
   extends
     React.ButtonHTMLAttributes<HTMLButtonElement>,

@@ -1,6 +1,6 @@
 import {
   Database, Zap, ListOrdered, Server, Boxes, Network,
-  Globe, HardDrive, Cpu, ShieldCheck, Search, Cloud,
+  Globe, HardDrive, Cpu, ShieldCheck, Search, Cloud, Monitor, ServerCog,
   type LucideIcon,
 } from 'lucide-react';
 import type { NodeCategory } from './types';
@@ -18,6 +18,8 @@ export const NODE_ICONS: Record<NodeCategory, LucideIcon> = {
   auth: ShieldCheck,
   search: Search,
   gateway: Cloud,
+  client: Monitor,
+  server: ServerCog,
 };
 
 export const NODE_COLORS: Record<NodeCategory, string> = {
@@ -33,6 +35,8 @@ export const NODE_COLORS: Record<NodeCategory, string> = {
   auth: 'var(--warn)',
   search: 'var(--info)',
   gateway: 'var(--text-secondary)',
+  client: 'var(--info)',
+  server: 'var(--accent-primary)',
 };
 
 export const STATUS_COLORS: Record<string, string> = {

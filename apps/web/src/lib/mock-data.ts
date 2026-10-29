@@ -43,25 +43,39 @@ export const ARCH_CONNECTION: ArchConnection[] = [
   { id: 'c9', from: 'kafka', to: 'worker', label: 'consume', animated: true },
 ];
 
-export const COMPONENT_LIBRARY: { category: string; items: { type: NodeCategory; label: string }[] }[] = [
-  { category: 'Compute', items: [
-    { type: 'api', label: 'API Service' },
-    { type: 'worker', label: 'Worker' },
-    { type: 'service', label: 'Microservice' },
-    { type: 'loadbalancer', label: 'Load Balancer' },
-    { type: 'gateway', label: 'API Gateway' },
-  ]},
-  { category: 'Data', items: [
-    { type: 'database', label: 'Database' },
-    { type: 'cache', label: 'Cache' },
-    { type: 'queue', label: 'Message Queue' },
-    { type: 'search', label: 'Search Index' },
-  ]},
-  { category: 'Infra', items: [
-    { type: 'cdn', label: 'CDN' },
-    { type: 'storage', label: 'Object Storage' },
-    { type: 'auth', label: 'Auth Service' },
-  ]},
+export const COMPONENT_LIBRARY: {
+  category: string;
+  items: { type: NodeCategory; label: string }[];
+}[] = [
+  {
+    category: "Compute",
+    items: [
+      { type: "client", label: "Client" },
+      { type: "server", label: "Server" },
+      { type: "api", label: "API Service" },
+      { type: "worker", label: "Worker" },
+      { type: "service", label: "Microservice" },
+      { type: "loadbalancer", label: "Load Balancer" },
+      { type: "gateway", label: "API Gateway" },
+    ],
+  },
+  {
+    category: "Data",
+    items: [
+      { type: "database", label: "Database" },
+      { type: "cache", label: "Cache" },
+      { type: "queue", label: "Message Queue" },
+      { type: "search", label: "Search Index" },
+    ],
+  },
+  {
+    category: "Infra",
+    items: [
+      { type: "cdn", label: "CDN" },
+      { type: "storage", label: "Object Storage" },
+      { type: "auth", label: "Auth Service" },
+    ],
+  },
 ];
 
 export const INITIAL_CHAT: ChatMessage[] = [

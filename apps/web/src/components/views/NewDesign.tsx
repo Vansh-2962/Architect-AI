@@ -3,10 +3,11 @@ import { ArrowRight, Sparkles, Loader2 } from 'lucide-react';
 import { TEMPLATES } from '@/lib/mock-data';
 import type { SavedDesign, ViewKey } from '@/lib/types';
 import { cx } from '@/lib/helpers';
+import { Button } from "../ui/button";
 
 interface NewDesignProps {
   onGenerate: (prompt: string, scale: string) => Promise<SavedDesign>;
-  onNavigate: (v: ViewKey) => void;
+  onNavigate: (v: ViewKey, design?: SavedDesign) => void;
 }
 
 const SCALES = [
@@ -27,8 +28,8 @@ export function NewDesign({ onGenerate, onNavigate }: NewDesignProps) {
     setGenerating(true);
     setError(null);
     try {
-      await onGenerate(prompt.trim(), scale);
-      onNavigate('architecture');
+      const design = await onGenerate(prompt.trim(), scale);
+      onNavigate("architecture", design);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not generate this architecture.');
     } finally {
@@ -48,8 +49,14 @@ export function NewDesign({ onGenerate, onNavigate }: NewDesignProps) {
       <div className="w-full max-w-[640px] px-6 py-8">
         {/* Label */}
         <div className="flex items-center gap-2 mb-4 justify-center">
-          <Sparkles size={14} className="text-[var(--accent-primary)]" strokeWidth={1.8} />
-          <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)]">AI-Powered System Design</span>
+          <Sparkles
+            size={14}
+            className="text-[var(--accent-primary)]"
+            strokeWidth={1.8}
+          />
+          <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+            AI-Powered System Design
+          </span>
         </div>
 
         {/* Heading */}
@@ -61,10 +68,14 @@ export function NewDesign({ onGenerate, onNavigate }: NewDesignProps) {
         </p>
 
         {/* Input */}
-        <div className={cx(
-          'border bg-[var(--bg-elevated)] transition-all',
-          prompt ? 'border-[var(--accent-primary)]' : 'border-dashed border-[var(--border-default)]'
-        )}>
+        <div
+          className={cx(
+            "border bg-[var(--bg-elevated)] transition-all",
+            prompt
+              ? "border-[var(--accent-primary)]"
+              : "border-dashed border-[var(--border-default)]",
+          )}
+        >
           <textarea
             value={prompt}
             onChange={(e) => {
@@ -72,7 +83,9 @@ export function NewDesign({ onGenerate, onNavigate }: NewDesignProps) {
               setError(null);
             }}
             onKeyDown={handleKeyDown}
-            placeholder={'Design a WhatsApp-like messaging system for\n100 million users with low-latency messaging.'}
+            placeholder={
+              "Design a WhatsApp-like messaging system for\n100 million users with low-latency messaging."
+            }
             rows={5}
             maxLength={4000}
             className="w-full bg-transparent outline-none px-4 py-3 text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none"
@@ -89,30 +102,44 @@ export function NewDesign({ onGenerate, onNavigate }: NewDesignProps) {
 
         {/* Scale selector */}
         <div className="mt-6">
-          <div className="font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-2">Scale</div>
+          <div className="font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-2">
+            Scale
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {SCALES.map((s) => (
               <button
                 key={s.id}
                 onClick={() => setScale(s.id)}
                 className={cx(
-                  'px-3 py-2.5 border text-left transition-all',
+                  "px-3 py-2.5 border text-left transition-all",
                   scale === s.id
-                    ? 'border-[var(--accent-primary)] bg-[var(--accent-glow)]'
-                    : 'border-[var(--border-default)] hover:border-[var(--border-strong)]'
+                    ? "border-[var(--accent-primary)] bg-[var(--accent-glow)]"
+                    : "border-[var(--border-default)] hover:border-[var(--border-strong)]",
                 )}
               >
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className={cx(
-                    'w-2 h-2 rounded-full',
-                    scale === s.id ? 'bg-[var(--accent-primary)]' : 'bg-[var(--border-strong)]'
-                  )} />
-                  <span className={cx(
-                    'text-[12px] font-medium',
-                    scale === s.id ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'
-                  )}>{s.label}</span>
+                  <span
+                    className={cx(
+                      "w-2 h-2 rounded-full",
+                      scale === s.id
+                        ? "bg-[var(--accent-primary)]"
+                        : "bg-[var(--border-strong)]",
+                    )}
+                  />
+                  <span
+                    className={cx(
+                      "text-[12px] font-medium",
+                      scale === s.id
+                        ? "text-[var(--text-primary)]"
+                        : "text-[var(--text-secondary)]",
+                    )}
+                  >
+                    {s.label}
+                  </span>
                 </div>
-                <span className="font-mono text-[9px] text-[var(--text-muted)] ml-4">{s.desc}</span>
+                <span className="font-mono text-[9px] text-[var(--text-muted)] ml-4">
+                  {s.desc}
+                </span>
               </button>
             ))}
           </div>
@@ -120,12 +147,18 @@ export function NewDesign({ onGenerate, onNavigate }: NewDesignProps) {
 
         {/* Templates */}
         <div className="mt-6">
-          <div className="font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-2">Quick Templates</div>
+          <div className="font-mono text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-2">
+            Quick Templates
+          </div>
           <div className="flex flex-wrap gap-1.5">
             {TEMPLATES.map((t) => (
               <button
                 key={t.id}
-                onClick={() => setPrompt(`Design a ${t.name.toLowerCase()} for ${t.users} with high availability and low latency.`)}
+                onClick={() =>
+                  setPrompt(
+                    `Design a ${t.name.toLowerCase()} for ${t.users} with high availability and low latency.`,
+                  )
+                }
                 className="px-2.5 py-1.5 border border-dashed border-[var(--border-default)] text-[11px] font-medium text-[var(--text-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-colors"
               >
                 {t.name}
@@ -135,10 +168,10 @@ export function NewDesign({ onGenerate, onNavigate }: NewDesignProps) {
         </div>
 
         {/* Generate button */}
-        <button
+        <Button
           onClick={handleGenerate}
           disabled={!prompt.trim() || generating}
-          className="group flex items-center gap-2 w-full justify-center px-5 py-3 mt-8 bg-[var(--accent-primary)] text-white font-medium text-[13px] disabled:opacity-30 transition-all hover:brightness-110"
+          className="group flex items-center gap-2 w-full my-5"
         >
           {generating ? (
             <>
@@ -148,10 +181,13 @@ export function NewDesign({ onGenerate, onNavigate }: NewDesignProps) {
           ) : (
             <>
               <span>Generate Architecture</span>
-              <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
+              <ArrowRight
+                size={15}
+                className="group-hover:translate-x-0.5 transition-transform"
+              />
             </>
           )}
-        </button>
+        </Button>
 
         {error && (
           <p role="alert" className="mt-3 text-[12px] text-[var(--error)]">
@@ -162,10 +198,21 @@ export function NewDesign({ onGenerate, onNavigate }: NewDesignProps) {
         {/* Generating progress */}
         {generating && (
           <div className="mt-4 space-y-1.5 animate-fade-in">
-            {['Analyzing requirements...', 'Selecting components...', 'Estimating capacity...', 'Drawing architecture...'].map((step, i) => (
+            {[
+              "Analyzing requirements...",
+              "Selecting components...",
+              "Estimating capacity...",
+              "Drawing architecture...",
+            ].map((step, i) => (
               <div key={step} className="flex items-center gap-2">
-                <Loader2 size={11} className="animate-spin text-[var(--accent-primary)]" style={{ animationDelay: `${i * 300}ms` }} />
-                <span className="font-mono text-[10px] text-[var(--text-muted)]">{step}</span>
+                <Loader2
+                  size={11}
+                  className="animate-spin text-[var(--accent-primary)]"
+                  style={{ animationDelay: `${i * 300}ms` }}
+                />
+                <span className="font-mono text-[10px] text-[var(--text-muted)]">
+                  {step}
+                </span>
               </div>
             ))}
           </div>

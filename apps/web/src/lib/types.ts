@@ -1,6 +1,18 @@
 export type NodeCategory =
-  | 'database' | 'cache' | 'queue' | 'api' | 'service'
-  | 'loadbalancer' | 'cdn' | 'storage' | 'worker' | 'auth' | 'search' | 'gateway';
+  | "database"
+  | "cache"
+  | "queue"
+  | "api"
+  | "service"
+  | "loadbalancer"
+  | "cdn"
+  | "storage"
+  | "worker"
+  | "auth"
+  | "search"
+  | "gateway"
+  | "client"
+  | "server";
 
 export type NodeStatus = 'healthy' | 'warning' | 'failure' | 'inactive';
 

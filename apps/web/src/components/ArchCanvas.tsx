@@ -17,8 +17,9 @@ import {
   type Node,
   type NodeProps,
 } from "@xyflow/react";
+import dagre from "@dagrejs/dagre";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Check, FilePlus2, Save, Trash2 } from "lucide-react";
+import { Check, FilePlus2, Network, Save, Trash2 } from "lucide-react";
 import "@xyflow/react/dist/style.css";
 import type {
   ArchConnection,
@@ -51,19 +52,76 @@ interface ArchitectureNodeData extends Record<string, unknown> {
 type ArchitectureFlowNode = Node<ArchitectureNodeData, "architecture">;
 type ArchitectureFlowEdge = Edge<{ label?: string }, "smoothstep">;
 
+function layoutNodes(
+  nodes: ArchitectureFlowNode[],
+  edges: ArchitectureFlowEdge[],
+): ArchitectureFlowNode[] {
+  const graph = new dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
+  graph.setGraph({
+    rankdir: "LR",
+    ranker: "network-simplex",
+    nodesep: 56,
+    edgesep: 32,
+    ranksep: 112,
+    marginx: 72,
+    marginy: 72,
+  });
+
+  for (const node of nodes) {
+    graph.setNode(node.id, {
+      width: node.measured?.width ?? 220,
+      height: node.measured?.height ?? 84,
+    });
+  }
+  for (const edge of edges) {
+    if (graph.hasNode(edge.source) && graph.hasNode(edge.target)) {
+      graph.setEdge(edge.source, edge.target);
+    }
+  }
+
+  dagre.layout(graph);
+  return nodes.map((node) => {
+    const position = graph.node(node.id);
+    return {
+      ...node,
+      position: {
+        x: position.x - (node.measured?.width ?? 220) / 2,
+        y: position.y - (node.measured?.height ?? 84) / 2,
+      },
+    };
+  });
+}
+
+function hasGeneratedGridLayout(nodes: ArchNode[]): boolean {
+  return (
+    nodes.length > 1 &&
+    nodes.every(
+      (node, index) =>
+        node.x === 100 + (index % 4) * 260 &&
+        node.y === 100 + Math.floor(index / 4) * 130,
+    )
+  );
+}
+
 function toFlowNodes(design?: SavedDesign | null): ArchitectureFlowNode[] {
-  return (design?.nodes ?? []).map((node) => ({
-    id: node.id,
-    type: "architecture",
-    position: { x: node.x, y: node.y },
-    data: {
-      label: node.label,
-      category: node.category,
-      subtitle: node.subtitle,
-      metadata: node.metadata,
-      status: node.status,
-    },
-  }));
+  const nodes = (design?.nodes ?? []).map(
+    (node) =>
+      ({
+        id: node.id,
+        type: "architecture",
+        position: { x: node.x, y: node.y },
+        data: {
+          label: node.label,
+          category: node.category,
+          subtitle: node.subtitle,
+          metadata: node.metadata,
+          status: node.status,
+        },
+      }) satisfies ArchitectureFlowNode,
+  );
+  return design && hasGeneratedGridLayout(design.nodes)
+    ? layoutNodes(nodes, toFlowEdges(design))
+    : nodes;
 }
 
 function toFlowEdges(design?: SavedDesign | null): ArchitectureFlowEdge[] {
@@ -86,7 +144,7 @@ const ArchitectureNode = memo(function ArchitectureNode({
   return (
     <div
       className={cx(
-        "relative min-w-48 border bg-[var(--bg-elevated)] px-3 py-2.5 shadow-md transition-colors",
+        "relative w-[220px] border bg-[var(--bg-elevated)] px-3 py-2.5 shadow-md transition-colors",
         data.isFailed
           ? "border-[var(--error)]"
           : selected
@@ -155,7 +213,7 @@ function ArchCanvasFlow({
   onDesignSaved,
 }: ArchCanvasProps) {
   const queryClient = useQueryClient();
-  const { screenToFlowPosition } = useReactFlow<
+  const { fitView, screenToFlowPosition } = useReactFlow<
     ArchitectureFlowNode,
     ArchitectureFlowEdge
   >();
@@ -253,6 +311,14 @@ function ArchCanvasFlow({
       })),
     [edges, failureNode],
   );
+
+  const handleAutoArrange = useCallback(() => {
+    setNodes((current) => layoutNodes(current, edges));
+    setIsDirty(true);
+    requestAnimationFrame(() => {
+      void fitView({ padding: 0.18, duration: 300 });
+    });
+  }, [edges, fitView, setNodes]);
 
   const handleConnect = useCallback(
     (connection: Connection) => {
@@ -437,9 +503,20 @@ function ArchCanvasFlow({
           deleteKeyCode={["Backspace", "Delete"]}
           defaultEdgeOptions={{
             type: "smoothstep",
-            style: { stroke: "var(--border-strong)" },
+            style: { stroke: "var(--border-strong)", strokeWidth: 1.5 },
+            labelStyle: {
+              fill: "var(--text-secondary)",
+              fontSize: 10,
+              fontFamily: "var(--font-mono)",
+            },
+            labelBgStyle: {
+              fill: "var(--bg-elevated)",
+              fillOpacity: 0.95,
+            },
+            labelBgPadding: [4, 2],
+            labelBgBorderRadius: 2,
           }}
-          className="bg-[var(--bg-base)]"
+          className="bg-(--bg-base)"
         >
           <Background
             variant={BackgroundVariant.Dots}
@@ -447,7 +524,7 @@ function ArchCanvasFlow({
             size={1}
             color="var(--grid-dot)"
           />
-          <Controls className="!overflow-hidden !rounded-none !border !border-[var(--border-default)] !bg-[var(--bg-elevated)] [&>button]:!border-[var(--border-subtle)] [&>button]:!bg-[var(--bg-elevated)] [&>button]:!fill-[var(--text-secondary)]" />
+          <Controls className="overflow-hidden! rounded-none! !border !border-[var(--border-default)] !bg-[var(--bg-elevated)] [&>button]:!border-[var(--border-subtle)] [&>button]:!bg-[var(--bg-elevated)] [&>button]:!fill-[var(--text-secondary)]" />
           <MiniMap
             nodeColor={(node) => {
               const category = (node.data as ArchitectureNodeData).category;
@@ -488,6 +565,16 @@ function ArchCanvasFlow({
                 {nodes.length} nodes · {edges.length} connections
               </span>
             </div>
+            <button
+              type="button"
+              onClick={handleAutoArrange}
+              disabled={nodes.length < 2}
+              className="inline-flex h-8 items-center gap-1.5 border border-[var(--border-default)] bg-[var(--bg-elevated)] px-2.5 text-[10px] text-[var(--text-secondary)] transition-colors hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+              title="Arrange connected components in clean left-to-right layers"
+            >
+              <Network size={12} />
+              Auto arrange
+            </button>
             <button
               type="button"
               onClick={() => saveMutation.mutate()}

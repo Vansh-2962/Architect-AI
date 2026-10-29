@@ -1,4 +1,12 @@
 import { useState, useEffect } from "react";
+import {
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useMatch,
+  useNavigate,
+} from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import "./App.css";
 import { Sidebar } from "@/components/Sidebar";
@@ -52,11 +60,53 @@ const AI_PANEL_VIEWS: ViewKey[] = [
   "simulations",
 ];
 
+const VIEW_PATHS: Record<ViewKey, string> = {
+  overview: "/overview",
+  "new-design": "/designs/new",
+  "my-designs": "/designs",
+  templates: "/templates",
+  knowledge: "/knowledge",
+  interview: "/interview",
+  architecture: "/architecture",
+  requirements: "/requirements",
+  apis: "/apis",
+  database: "/database",
+  capacity: "/capacity",
+  tradeoffs: "/tradeoffs",
+  simulations: "/simulations",
+};
+
+const WORKSPACE_VIEWS: ViewKey[] = [
+  "architecture",
+  "requirements",
+  "apis",
+  "database",
+  "capacity",
+  "tradeoffs",
+  "simulations",
+];
+
+function getViewFromPath(pathname: string): ViewKey {
+  const staticView = Object.entries(VIEW_PATHS).find(
+    ([, path]) => path === pathname,
+  )?.[0] as ViewKey | undefined;
+  if (staticView) return staticView;
+
+  const workspacePath = pathname.split("/").slice(3).join("/");
+  return (
+    WORKSPACE_VIEWS.find((view) => VIEW_PATHS[view] === `/${workspacePath}`) ??
+    "overview"
+  );
+}
+
 function App() {
   const queryClient = useQueryClient();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const designRoute = useMatch("/designs/:designId/*");
   const { data: authSession, isPending: authPending } = authClient.useSession();
   const userId = authSession?.user.id ?? "";
-  const [activeView, setActiveView] = useState<ViewKey>("overview");
+  const activeView = getViewFromPath(location.pathname);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [aiCollapsed, setAiCollapsed] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
@@ -68,6 +118,12 @@ function App() {
   const [designsLoading, setDesignsLoading] = useState(false);
   const [designsError, setDesignsError] = useState<string | null>(null);
   const [currentDesign, setCurrentDesign] = useState<SavedDesign | null>(null);
+  const activeDesign = designRoute?.params.designId
+    ? (designs.find((design) => design.id === designRoute.params.designId) ??
+      (currentDesign?.id === designRoute.params.designId
+        ? currentDesign
+        : null))
+    : currentDesign;
   const [version] = useState(0.8);
   const { toggleTheme } = useTheme();
 
@@ -97,6 +153,14 @@ function App() {
     };
   }, [authSession?.user.id]);
 
+  useEffect(() => {
+    if (!designRoute?.params.designId) return;
+    const design = designs.find(
+      (item) => item.id === designRoute.params.designId,
+    );
+    if (design) setCurrentDesign(design);
+  }, [designRoute?.params.designId, designs]);
+
   const handleGenerateDesign = async (prompt: string, scale: string) => {
     const design = await createDesign(prompt, scale);
     setCurrentDesign(design);
@@ -112,7 +176,7 @@ function App() {
   const handleSelectDesign = (design: SavedDesign) => {
     setCurrentDesign(design);
     setSelectedNode(null);
-    handleNavigate("architecture");
+    navigate(`/designs/${encodeURIComponent(design.id)}/architecture`);
   };
 
   const handleDesignSaved = (savedDesign: SavedDesign) => {
@@ -166,18 +230,24 @@ function App() {
     }
   }, [activeView]);
 
-  const handleNavigate = (view: ViewKey) => {
-    setActiveView(view);
+  const handleNavigate = (view: ViewKey, design?: SavedDesign) => {
+    if (design) setCurrentDesign(design);
+    const targetDesign = design ?? activeDesign;
+    const path =
+      WORKSPACE_VIEWS.includes(view) && targetDesign
+        ? `/designs/${encodeURIComponent(targetDesign.id)}${VIEW_PATHS[view]}`
+        : VIEW_PATHS[view];
+    navigate(path);
     if (view === "simulations") setFailureNode(null);
   };
 
   const handleCommandAction = (action: string) => {
     switch (action) {
       case "generate":
-        setActiveView("new-design");
+        handleNavigate("new-design");
         break;
       case "simulate":
-        setActiveView("simulations");
+        handleNavigate("simulations");
         break;
       case "export":
         break;
@@ -187,14 +257,14 @@ function App() {
     }
   };
 
-  const renderView = () => {
-    switch (activeView) {
+  const renderView = (view: ViewKey) => {
+    switch (view) {
       case "overview":
         return (
           <Overview
             userId={userId}
             onNavigate={handleNavigate}
-            onNewDesign={() => setActiveView("new-design")}
+            onNewDesign={() => handleNavigate("new-design")}
             onSelectDesign={handleSelectDesign}
           />
         );
@@ -208,7 +278,7 @@ function App() {
       case "my-designs":
         return (
           <MyDesigns
-            onNewDesign={() => setActiveView("new-design")}
+            onNewDesign={() => handleNavigate("new-design")}
             designs={designs}
             loading={designsLoading}
             error={designsError}
@@ -229,7 +299,7 @@ function App() {
             selectedNodeId={selectedNode}
             onSelectNode={setSelectedNode}
             failureNode={failureNode}
-            design={currentDesign}
+            design={activeDesign}
             onDesignSaved={handleDesignSaved}
           />
         );
@@ -256,7 +326,7 @@ function App() {
           <Overview
             userId={userId}
             onNavigate={handleNavigate}
-            onNewDesign={() => setActiveView("new-design")}
+            onNewDesign={() => handleNavigate("new-design")}
             onSelectDesign={handleSelectDesign}
           />
         );
@@ -308,7 +378,24 @@ function App() {
 
         {/* Workspace */}
         <div className="flex flex-1 min-h-0">
-          <div className="flex-1 min-w-0 overflow-hidden">{renderView()}</div>
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <Routes>
+              <Route path="/" element={<Navigate to="/overview" replace />} />
+              {(Object.entries(VIEW_PATHS) as [ViewKey, string][]).map(
+                ([view, path]) => (
+                  <Route key={view} path={path} element={renderView(view)} />
+                ),
+              )}
+              {WORKSPACE_VIEWS.map((view) => (
+                <Route
+                  key={`design-${view}`}
+                  path={`/designs/:designId${VIEW_PATHS[view]}`}
+                  element={renderView(view)}
+                />
+              ))}
+              <Route path="*" element={<Navigate to="/overview" replace />} />
+            </Routes>
+          </div>
 
           {/* AI Copilot */}
           {showAiPanel && (
